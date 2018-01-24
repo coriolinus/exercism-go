@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# if $DEBUG=1, this enters a safe, idempotent mode
+
+# if the first variable is set, we want to submit / commit that exercise
+if [ -n "$1" ]; then
+    if [ -f "$1" ]; then 
+        exname=$(dirname "$1")
+    elif [ -d "$1" ]; then 
+        exname=${@%/}
+    fi
+
+    if [ -n "$DEBUG" ]; then 
+        echo "exname: $exname"
+    fi
+    
+    if [ -n "$(git status --porcelain "$exname")" -a -z "$DEBUG" ]; then
+        git add "$exname"
+        git commit -m "Add, complete exercise $exname"
+        git push
+    fi
+
+    expath="$exname/${exname}.go"
+    if [ -f "$expath" ]; then 
+        if [ -z "$DEBUG" ]; then 
+            exercism submit "$expath"
+        else
+            echo "expath: $expath"
+        fi
+    else
+        fname=$(echo $exname | tr '-' '_')
+        expath="$exname/${fname}.go"
+        if [ -f "$expath" ]; then
+            if [ -z "$DEBUG" ]; then 
+                exercism submit "$expath"
+            else
+                echo "expath: $expath"
+            fi
+        elif [ -n "$DEBUG" ]; then 
+            echo "expath: not found"
+        fi
+    fi
+fi
+
+if [ -z "$DEBUG" ]; then
+    exercism fetch go
+fi
